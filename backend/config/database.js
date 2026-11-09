@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -15,15 +15,12 @@ const pool = mysql.createPool({
 
 // Test koneksi saat startup
 const testConnection = async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log('✅ Koneksi MySQL berhasil');
-    connection.release();
-  } catch (error) {
-    console.error('❌ Koneksi MySQL gagal:', error.message);
-    process.exit(1);
-  }
+  const connection = await pool.getConnection();
+  connection.release();
+  return true;
 };
+
+pool.testConnection = testConnection;
 
 testConnection();
 

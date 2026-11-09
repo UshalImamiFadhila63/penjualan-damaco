@@ -12,8 +12,8 @@ const INITIAL_FORM = {
 };
 
 const ProdukPage = () => {
-  const { isAdmin, user } = useAuth();
-  const canEdit = isAdmin || user?.role === 'gudang';
+  const { isSuperAdmin } = useAuth();
+  const canEdit = isSuperAdmin;
 
   const [produk, setProduk] = useState([]);
   const [kategori, setKategori] = useState([]);
@@ -196,7 +196,7 @@ const ProdukPage = () => {
                             onClick={() => openEdit(item)}
                             title="Edit"
                           ><FiEdit2 /></button>
-                          {isAdmin && (
+                          {isSuperAdmin && (
                             <button
                               className="btn btn-danger btn-icon btn-sm"
                               onClick={() => handleDelete(item.id, item.nama)}

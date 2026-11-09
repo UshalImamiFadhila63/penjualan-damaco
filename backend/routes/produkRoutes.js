@@ -5,12 +5,12 @@ const {
 } = require('../controllers/produkController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-router.use(authenticate);
+router.use(authenticate, authorize('super_admin'));
 
 router.get('/', getAllProduk);
 router.get('/:id', getProdukById);
-router.post('/', authorize('admin', 'gudang'), createProduk);
-router.put('/:id', authorize('admin', 'gudang'), updateProduk);
-router.delete('/:id', authorize('admin'), deleteProduk);
+router.post('/', createProduk);
+router.put('/:id', updateProduk);
+router.delete('/:id', deleteProduk);
 
 module.exports = router;

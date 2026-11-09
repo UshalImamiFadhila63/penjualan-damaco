@@ -2,50 +2,31 @@ import api from './api';
 
 export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
+  register: (data) => api.post('/auth/register', data),
   getMe: () => api.get('/auth/me'),
-  changePassword: (data) => api.put('/auth/change-password', data),
 };
 
-export const produkService = {
-  getAll: (params) => api.get('/produk', { params }),
-  getById: (id) => api.get(`/produk/${id}`),
-  create: (data) => api.post('/produk', data),
-  update: (id, data) => api.put(`/produk/${id}`, data),
-  delete: (id) => api.delete(`/produk/${id}`),
+export const publicService = {
+  getProducts: (params) => api.get('/products', { params }),
+  getProduct: (id) => api.get(`/products/${id}`),
 };
 
-export const penjualanService = {
-  getDashboard: () => api.get('/penjualan/dashboard'),
-  getAll: (params) => api.get('/penjualan', { params }),
-  getById: (id) => api.get(`/penjualan/${id}`),
-  create: (data) => api.post('/penjualan', data),
-  updateStatus: (id, status) => api.put(`/penjualan/${id}/status`, { status }),
+export const adminService = {
+  list: (resource) => api.get(`/admin/${resource}`),
+  get: (resource, id) => api.get(`/admin/${resource}/${id}`),
+  create: (resource, data) => api.post(`/admin/${resource}`, data),
+  update: (resource, id, data) => api.put(`/admin/${resource}/${id}`, data),
+  remove: (resource, id) => api.delete(`/admin/${resource}/${id}`),
+  getCompanySettings: () => api.get('/admin/company-settings'),
+  updateCompanySettings: (data) => api.put('/admin/company-settings', data),
+  updatePurchaseOrderStatus: (id, data) => api.post(`/admin/purchase-orders/${id}/status`, data),
 };
 
-export const kategoriService = {
-  getAll: () => api.get('/master/kategori'),
-  create: (data) => api.post('/master/kategori', data),
-  update: (id, data) => api.put(`/master/kategori/${id}`, data),
-  delete: (id) => api.delete(`/master/kategori/${id}`),
-};
-
-export const supplierService = {
-  getAll: () => api.get('/master/supplier'),
-  create: (data) => api.post('/master/supplier', data),
-  update: (id, data) => api.put(`/master/supplier/${id}`, data),
-  delete: (id) => api.delete(`/master/supplier/${id}`),
-};
-
-export const pelangganService = {
-  getAll: (params) => api.get('/master/pelanggan', { params }),
-  create: (data) => api.post('/master/pelanggan', data),
-  update: (id, data) => api.put(`/master/pelanggan/${id}`, data),
-  delete: (id) => api.delete(`/master/pelanggan/${id}`),
-};
-
-export const userService = {
-  getAll: () => api.get('/master/users'),
-  create: (data) => api.post('/master/users', data),
-  update: (id, data) => api.put(`/master/users/${id}`, data),
-  delete: (id) => api.delete(`/master/users/${id}`),
+export const customerService = {
+  getProfile: () => api.get('/customer/profile'),
+  updateProfile: (data) => api.put('/customer/profile', data),
+  createQuotationRequest: (data) => api.post('/customer/quotation-requests', data),
+  getQuotationRequests: () => api.get('/customer/quotation-requests'),
+  getOffers: () => api.get('/customer/offers'),
+  respondToOffer: (id, status) => api.post(`/customer/offers/${id}/respond`, { status }),
 };

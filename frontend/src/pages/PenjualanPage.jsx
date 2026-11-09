@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 const PenjualanPage = () => {
-  const { isAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -227,7 +227,7 @@ const PenjualanPage = () => {
                 </div>
               </div>
             </div>
-            {isAdmin && detail.status !== 'batal' && (
+            {isSuperAdmin && detail.status !== 'batal' && (
               <div className="modal-footer">
                 <button
                   className="btn btn-danger"

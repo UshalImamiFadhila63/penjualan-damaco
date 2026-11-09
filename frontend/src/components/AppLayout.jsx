@@ -6,6 +6,7 @@ const pageTitles = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Ringkasan aktivitas penjualan hari ini' },
   '/pos': { title: 'Kasir (POS)', subtitle: 'Buat transaksi penjualan baru' },
   '/penjualan': { title: 'Riwayat Penjualan', subtitle: 'Daftar semua transaksi penjualan' },
+  '/penawaran': { title: 'Permintaan Penawaran', subtitle: 'Kelola permintaan dari customer' },
   '/produk': { title: 'Manajemen Produk', subtitle: 'Kelola data produk dan stok' },
   '/kategori': { title: 'Kategori', subtitle: 'Kelola kategori produk' },
   '/supplier': { title: 'Supplier', subtitle: 'Kelola data supplier' },

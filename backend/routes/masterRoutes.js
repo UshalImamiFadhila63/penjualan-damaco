@@ -8,30 +8,30 @@ const {
 } = require('../controllers/masterController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-router.use(authenticate);
+router.use(authenticate, authorize('super_admin'));
 
 // Kategori
 router.get('/kategori', getAllKategori);
-router.post('/kategori', authorize('admin'), createKategori);
-router.put('/kategori/:id', authorize('admin'), updateKategori);
-router.delete('/kategori/:id', authorize('admin'), deleteKategori);
+router.post('/kategori', createKategori);
+router.put('/kategori/:id', updateKategori);
+router.delete('/kategori/:id', deleteKategori);
 
 // Supplier
 router.get('/supplier', getAllSupplier);
-router.post('/supplier', authorize('admin'), createSupplier);
-router.put('/supplier/:id', authorize('admin'), updateSupplier);
-router.delete('/supplier/:id', authorize('admin'), deleteSupplier);
+router.post('/supplier', createSupplier);
+router.put('/supplier/:id', updateSupplier);
+router.delete('/supplier/:id', deleteSupplier);
 
 // Pelanggan
 router.get('/pelanggan', getAllPelanggan);
 router.post('/pelanggan', createPelanggan);
 router.put('/pelanggan/:id', updatePelanggan);
-router.delete('/pelanggan/:id', authorize('admin'), deletePelanggan);
+router.delete('/pelanggan/:id', deletePelanggan);
 
 // Users (Admin Only)
-router.get('/users', authorize('admin'), getAllUsers);
-router.post('/users', authorize('admin'), createUser);
-router.put('/users/:id', authorize('admin'), updateUser);
-router.delete('/users/:id', authorize('admin'), deleteUser);
+router.get('/users', getAllUsers);
+router.post('/users', createUser);
+router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser);
 
 module.exports = router;

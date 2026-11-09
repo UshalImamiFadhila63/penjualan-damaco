@@ -44,9 +44,8 @@ export const getStatusBadge = (status) => {
 // Badge role warna
 export const getRoleBadge = (role) => {
   const map = {
-    admin: { label: 'Admin', color: 'purple' },
-    kasir: { label: 'Kasir', color: 'blue' },
-    gudang: { label: 'Gudang', color: 'green' },
+    super_admin: { label: 'Super Admin', color: 'purple' },
+    customer: { label: 'Customer', color: 'blue' },
   };
   return map[role] || { label: role, color: 'gray' };
 };

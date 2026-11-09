@@ -5,7 +5,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
-const INIT_FORM = { nama: '', email: '', password: '', role: 'kasir', is_active: 1 };
+const INIT_FORM = { nama: '', email: '', password: '', role: 'customer', is_active: 1 };
 
 const UsersPage = () => {
   const { user: currentUser } = useAuth();
@@ -39,6 +39,7 @@ const UsersPage = () => {
     setSubmitting(true);
     try {
       const payload = { ...form };
+      delete payload.role;
       if (editData && !payload.password) delete payload.password;
       if (editData) { await userService.update(editData.id, payload); toast.success('User berhasil diupdate'); }
       else { await userService.create(payload); toast.success('User berhasil ditambahkan'); }
@@ -142,12 +143,7 @@ const UsersPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Role *</label>
-                    <select className="form-control" value={form.role}
-                      onChange={e => setForm({ ...form, role: e.target.value })}>
-                      <option value="kasir">Kasir</option>
-                      <option value="gudang">Gudang</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <input className="form-control" value={getRoleBadge(form.role).label} readOnly />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Status</label>

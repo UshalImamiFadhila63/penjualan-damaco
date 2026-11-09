@@ -1,8 +1,14 @@
 const { verifyToken } = require('../config/jwt');
-const db = require('../config/database');
+
+const roleAliases = {
+  super_admin: 'SUPERADMIN',
+  SUPERADMIN: 'SUPERADMIN',
+  customer: 'CUSTOMER',
+  CUSTOMER: 'CUSTOMER',
+};
 
 // Middleware: Verifikasi Token JWT
-const authenticate = async (req, res, next) => {
+const createAuthenticate = (pool) => async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -17,6 +23,7 @@ const authenticate = async (req, res, next) => {
     const decoded = verifyToken(token);
 
     // Ambil data user terbaru dari database
+    const db = pool || require('../config/database');
     const [rows] = await db.query(
       'SELECT id, nama, email, role, is_active FROM users WHERE id = ?',
       [decoded.id]
@@ -32,17 +39,23 @@ const authenticate = async (req, res, next) => {
     req.user = rows[0];
     next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Token tidak valid atau sudah kadaluarsa.',
-    });
+    if (['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(error.name)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token tidak valid atau sudah kadaluarsa.',
+      });
+    }
+    return next(error);
   }
 };
 
+const authenticate = createAuthenticate();
+
 // Middleware: Cek Role
-const authorize = (...roles) => {
+const requireRole = (...roles) => {
+  const permitted = new Set(roles.map((role) => roleAliases[role] || role));
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !permitted.has(roleAliases[req.user.role] || req.user.role)) {
       return res.status(403).json({
         success: false,
         message: `Akses ditolak. Hanya role ${roles.join(', ')} yang diizinkan.`,
@@ -52,4 +65,4 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { authenticate, authorize };
+module.exports = { authenticate, createAuthenticate, authorize: requireRole, requireRole };

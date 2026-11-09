@@ -132,23 +132,26 @@ const getAllUsers = async (req, res, next) => {
 
 const createUser = async (req, res, next) => {
   try {
-    const { nama, email, password, role } = req.body;
+    const { nama, email, password } = req.body;
     if (!nama || !email || !password) return next(createError('Nama, email, dan password wajib diisi', 400));
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       'INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)',
-      [nama, email, hashedPassword, role || 'kasir']
+      [nama, email, hashedPassword, 'customer']
     );
-    res.status(201).json({ success: true, message: 'User berhasil ditambahkan', data: { id: result.insertId, nama, email, role } });
+    res.status(201).json({ success: true, message: 'User berhasil ditambahkan', data: { id: result.insertId, nama, email, role: 'customer' } });
   } catch (error) { next(error); }
 };
 
 const updateUser = async (req, res, next) => {
   try {
     const { nama, email, role, is_active } = req.body;
+    if (role !== undefined) {
+      return next(createError('Role akun tidak dapat diubah dari manajemen user', 400));
+    }
     await db.query(
-      'UPDATE users SET nama = ?, email = ?, role = ?, is_active = ? WHERE id = ?',
-      [nama, email, role, is_active, req.params.id]
+      'UPDATE users SET nama = ?, email = ?, is_active = ? WHERE id = ?',
+      [nama, email, is_active, req.params.id]
     );
     res.json({ success: true, message: 'User berhasil diupdate' });
   } catch (error) { next(error); }

@@ -1,5 +1,12 @@
 // Middleware: Error Handler Global
 const errorHandler = (err, req, res, next) => {
+  if (err && err.name === 'ZodError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Data tidak valid.',
+      errors: err.issues.map(({ path, message }) => ({ field: path.join('.'), message })),
+    });
+  }
   console.error('❌ Error:', err.message);
   console.error(err.stack);
 

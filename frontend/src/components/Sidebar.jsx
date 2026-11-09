@@ -1,28 +1,29 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   FiGrid, FiPackage, FiShoppingCart, FiUsers, FiTag,
-  FiTruck, FiUser, FiLogOut, FiSettings,
+  FiTruck, FiUser, FiLogOut, FiFileText,
 } from 'react-icons/fi';
 
 const navItems = [
   { label: 'MENU UTAMA', type: 'section' },
-  { to: '/dashboard', icon: <FiGrid />, label: 'Dashboard' },
+  { to: '/dashboard', icon: <FiGrid />, label: 'Dashboard', roles: ['super_admin'] },
   { to: '/pos', icon: <FiShoppingCart />, label: 'Kasir (POS)' },
   { to: '/penjualan', icon: <FiShoppingCart />, label: 'Riwayat Penjualan' },
+  { to: '/penawaran', icon: <FiFileText />, label: 'Permintaan Penawaran', roles: ['super_admin'] },
 
   { label: 'MASTER DATA', type: 'section' },
-  { to: '/produk', icon: <FiPackage />, label: 'Produk', roles: ['admin', 'gudang'] },
-  { to: '/kategori', icon: <FiTag />, label: 'Kategori', roles: ['admin'] },
-  { to: '/supplier', icon: <FiTruck />, label: 'Supplier', roles: ['admin'] },
-  { to: '/pelanggan', icon: <FiUsers />, label: 'Pelanggan' },
+  { to: '/produk', icon: <FiPackage />, label: 'Produk', roles: ['super_admin'] },
+  { to: '/kategori', icon: <FiTag />, label: 'Kategori', roles: ['super_admin'] },
+  { to: '/supplier', icon: <FiTruck />, label: 'Supplier', roles: ['super_admin'] },
+  { to: '/pelanggan', icon: <FiUsers />, label: 'Pelanggan', roles: ['super_admin'] },
 
   { label: 'PENGATURAN', type: 'section' },
-  { to: '/users', icon: <FiUser />, label: 'Manajemen User', roles: ['admin'] },
+  { to: '/users', icon: <FiUser />, label: 'Manajemen User', roles: ['super_admin'] },
 ];
 
 const Sidebar = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
 
   const visibleNavItems = navItems.filter(item => {
     if (item.type === 'section') return true;
@@ -75,7 +76,7 @@ const Sidebar = () => {
           <div>
             <div style={{ fontSize: 13, fontWeight: 500 }}>{user?.nama}</div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-              {user?.role}
+              {user?.role === 'super_admin' ? 'Super Admin' : 'Customer'}
             </div>
           </div>
         </div>

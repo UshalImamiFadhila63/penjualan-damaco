@@ -1,96 +1,109 @@
-# Sistem Penjualan
-> Web app Point of Sale dengan Node.js + React.js + MySQL
+# DAMACO
 
-## 🚀 Cara Menjalankan
+Simple product catalog and account management application for DAMACO. The
+backend uses Express, MySQL, JWT, Zod, and bcrypt. The frontend uses React and
+Vite.
 
-### Prasyarat
-- Node.js v18+
-- MySQL server berjalan
+## Requirements
 
-### 1. Setup Database
-Import file SQL ke MySQL:
-```bash
-mysql -u root -p < backend/database/schema.sql
-```
-Atau buka phpMyAdmin / MySQL Workbench, lalu jalankan isi file `backend/database/schema.sql`.
+- Node.js 20.19+ or 22.12+
+- MySQL 8+
 
-### 2. Konfigurasi Backend
-Edit file `backend/.env`:
-```
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=password_mysql_kamu
-DB_NAME=penjualan_db
-JWT_SECRET=ganti_dengan_secret_panjang_random
-```
+## Setup
 
-### 3. Jalankan Backend
-```bash
-cd backend
-npm run dev
-# Backend berjalan di http://localhost:5000
-```
+1. Configure `backend/.env` with database access and a long random `JWT_SECRET`.
+   Set `SUPERADMIN_NAME`, `SUPERADMIN_EMAIL`, and `SUPERADMIN_PASSWORD` for the
+   initial admin account. The seed requires an admin password of at least 12
+   characters.
+2. Install dependencies:
 
-### 4. Jalankan Frontend
-Buka terminal baru:
-```bash
-cd frontend
-npm run dev
-# Frontend berjalan di http://localhost:5173
-```
+   ```powershell
+   cd backend
+   npm install
+   cd ..\frontend
+   npm install
+   ```
 
----
+3. Set up the schema:
+   - For a fresh database, import `backend/database/schema.sql`. It creates
+     and selects `penjualan_db`; set `DB_NAME=penjualan_db` or change the
+     database selection in that SQL file.
+   - For an existing database with its `users` table, run:
 
-## 🔐 Akun Default
-| Role  | Email                    | Password |
-|-------|--------------------------|----------|
-| Admin | admin@penjualan.com      | password |
-| Kasir | kasir@penjualan.com      | password |
+     ```powershell
+     cd backend
+     npm run migrate
+     ```
 
-> ⚠️ **Ganti password setelah pertama login!**
+     The migration uses `CREATE TABLE IF NOT EXISTS` and a migration-version
+     table. It does not drop or replace existing application data.
+4. Seed the admin, company settings, three dealers, two inactive demo customers,
+   and 24 generic drone products/accessories. This can be safely repeated:
 
----
+   ```powershell
+   npm run seed
+   ```
 
-## 📁 Struktur Folder
-```
-Penjualan/
-├── backend/
-│   ├── config/          # Database & JWT config
-│   ├── controllers/     # Logic bisnis API
-│   ├── database/        # SQL schema
-│   ├── middleware/      # Auth & error handler
-│   ├── routes/          # API routes
-│   ├── .env             # Konfigurasi (edit ini!)
-│   └── server.js        # Entry point backend
-│
-└── frontend/
-    ├── src/
-    │   ├── components/  # Layout & shared components
-    │   ├── context/     # React context (Auth)
-    │   ├── pages/       # Halaman-halaman app
-    │   ├── services/    # API service functions
-    │   └── utils/       # Helper functions
-    └── .env             # VITE_API_URL
-```
+5. Start the backend and frontend in separate terminals:
 
-## 📡 API Endpoints
-| Method | Endpoint                    | Deskripsi            |
-|--------|-----------------------------|----------------------|
-| POST   | /api/auth/login             | Login                |
-| GET    | /api/auth/me                | Info user login      |
-| GET    | /api/produk                 | List produk          |
-| POST   | /api/produk                 | Tambah produk        |
-| PUT    | /api/produk/:id             | Update produk        |
-| DELETE | /api/produk/:id             | Hapus produk         |
-| GET    | /api/penjualan/dashboard    | Statistik dashboard  |
-| GET    | /api/penjualan              | List transaksi       |
-| POST   | /api/penjualan              | Buat transaksi baru  |
-| GET    | /api/master/kategori        | List kategori        |
-| GET    | /api/master/supplier        | List supplier        |
-| GET    | /api/master/pelanggan       | List pelanggan       |
-| GET    | /api/master/users           | List users (admin)   |
+   ```powershell
+   cd backend
+   npm run dev
+   ```
 
-## 🛠️ Tech Stack
-- **Backend**: Node.js, Express.js, MySQL2, JWT, Bcrypt
-- **Frontend**: React.js (Vite), React Router v6, Axios, Recharts, React Icons
-- **Database**: MySQL 8+
+   ```powershell
+   cd frontend
+   npm run dev
+   ```
+
+   Open `http://localhost:5173`. Customer account access is at `/masuk` and
+   `/daftar`; the admin workspace is at `/admin`.
+
+## Roles and routes
+
+- Public users can search and browse products without seeing purchase prices.
+- `CUSTOMER` users can register/sign in, manage their profile, submit quotation
+  requests from the catalog, review offers, and accept or reject an offer.
+- `SUPERADMIN` users can manage products, dealers, customer accounts, company
+  settings, quotation requests, offers, and purchase orders.
+- Protected requests use a bearer JWT. Registration always creates a customer.
+- The initial `SUPERADMIN` account is created or updated by the repeatable seed
+  from `SUPERADMIN_NAME`, `SUPERADMIN_EMAIL`, and `SUPERADMIN_PASSWORD` in
+  `backend/.env`. Use `npm run seed` after setting those values.
+- PDF generation, file upload, dealer quotation processing, invoice/receipt/tax
+  invoice creation, payment integration, shipping integrations, and
+  notifications are not implemented; those endpoints respond with HTTP 501.
+
+Public catalog endpoints:
+
+- `GET /api/products?search=&category=&page=&limit=`
+- `GET /api/products/categories`
+- `GET /api/products/:id`
+
+Authentication endpoints:
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+
+Customer endpoints require `CUSTOMER`: `/api/customer/profile`,
+`/api/customer/quotation-requests`, `/api/customer/offers`, and
+`/api/customer/offers/:id/respond`.
+Admin endpoints require `SUPERADMIN`: `/api/admin/*`. Implemented transaction
+routes include quotation-request listing, offer creation/listing, purchase-order
+creation/listing, and purchase-order status advancement.
+
+Purchase orders created from offers require the customer to have accepted the
+offer. Orders can also be created without a quotation by supplying a dealer and
+line items. Status advancement is admin-operated; it does not record or process
+payments.
+
+Document numbers are allocated under a row lock in `document_counters`.
+Purchase-order status changes must advance one step at a time:
+`PO_RECEIVED` → `DEALER_VERIFIED` → `AWAITING_PAYMENT` → `PAID` → `SHIPPED` →
+`RECEIVED` → `COMPLETED`. Each accepted change is written to
+`status_histories`.
+
+## Validation
+
+From `backend/`, run `npm test`. From `frontend/`, run `npm run build`.

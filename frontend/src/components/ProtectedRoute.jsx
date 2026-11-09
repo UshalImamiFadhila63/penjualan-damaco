@@ -5,7 +5,7 @@ const ProtectedRoute = ({ children, roles }) => {
   const { user, token } = useAuth();
 
   if (!token || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/super-admin/login" replace />;
   }
 
   if (roles && !roles.includes(user.role)) {

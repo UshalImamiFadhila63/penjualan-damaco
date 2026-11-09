@@ -1,83 +1,53 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import AppLayout from './components/AppLayout';
-
-// Pages
+import { AuthProvider, useAuth } from './context/AuthContext';
+import StorefrontPage from './pages/StorefrontPage';
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import POSPage from './pages/POSPage';
-import PenjualanPage from './pages/PenjualanPage';
-import ProdukPage from './pages/ProdukPage';
-import MasterDataPage from './pages/MasterDataPage';
-import PelangganPage from './pages/PelangganPage';
-import UsersPage from './pages/UsersPage';
+import AdminPages from './pages/AdminPages';
+import AccountPage from './pages/AccountPage';
+import './index.css';
 
-function App() {
+function homeFor(user) {
+  if (!user) return '/';
+  return String(user.role).toUpperCase().replaceAll('_', '') === 'SUPERADMIN' ? '/admin' : '/akun';
+}
+
+function RoleRoute({ role, children }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return <main className="center-state">Memuat akun…</main>;
+  if (!user) return <Navigate to="/masuk" replace state={{ from: location.pathname }} />;
+  if (String(user.role).toUpperCase().replaceAll('_', '') !== role) return <Navigate to={homeFor(user)} replace />;
+  return children;
+}
+
+function GuestRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <main className="center-state">Memuat akun…</main>;
+  return user ? <Navigate to={homeFor(user)} replace /> : children;
+}
+
+function AppRoutes() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Route */}
-          <Route path="/login" element={<LoginPage />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="pos" element={<POSPage />} />
-            <Route path="penjualan" element={<PenjualanPage />} />
-            <Route path="produk" element={
-              <ProtectedRoute roles={['admin', 'gudang', 'kasir']}>
-                <ProdukPage />
-              </ProtectedRoute>
-            } />
-            <Route path="kategori" element={
-              <ProtectedRoute roles={['admin']}>
-                <MasterDataPage />
-              </ProtectedRoute>
-            } />
-            <Route path="supplier" element={
-              <ProtectedRoute roles={['admin']}>
-                <MasterDataPage />
-              </ProtectedRoute>
-            } />
-            <Route path="pelanggan" element={<PelangganPage />} />
-            <Route path="users" element={
-              <ProtectedRoute roles={['admin']}>
-                <UsersPage />
-              </ProtectedRoute>
-            } />
-          </Route>
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
-
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: '10px',
-          },
-          success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-        }}
-      />
-    </AuthProvider>
+    <Routes>
+      <Route path="/" element={<StorefrontPage />} />
+      <Route path="/produk/:id" element={<StorefrontPage />} />
+      <Route path="/masuk" element={<GuestRoute><LoginPage /></GuestRoute>} />
+      <Route path="/daftar" element={<GuestRoute><LoginPage initialMode="register" /></GuestRoute>} />
+      <Route path="/admin/*" element={<RoleRoute role="SUPERADMIN"><AdminPages /></RoleRoute>} />
+      <Route path="/akun/*" element={<RoleRoute role="CUSTOMER"><AccountPage /></RoleRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+      <Toaster position="top-right" />
+    </AuthProvider>
+  );
+}
