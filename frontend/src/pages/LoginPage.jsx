@@ -1,83 +1,289 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiShoppingBag, FiEye, FiEyeOff } from 'react-icons/fi';
+import { useDamaco } from '../context/DamacoContext';
+import {
+  FiEye,
+  FiEyeOff,
+  FiArrowRight,
+  FiShield,
+  FiUserCheck,
+  FiLock,
+  FiMail,
+  FiBriefcase,
+  FiCopy,
+  FiCheck,
+} from 'react-icons/fi';
+import DamacoLogo from '../components/DamacoLogo';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-  const { login, loading } = useAuth();
+  const { login, register, loginAsAdmin, loginAsCustomer, loading } = useAuth();
+  const { handleRegisterCustomer, clearCart } = useDamaco();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'daftar'
+  const [form, setForm] = useState({
+    namaPerusahaan: '',
+    namaPic: '',
+    email: '',
+    password: '',
+  });
   const [showPass, setShowPass] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(null);
+
+  // Pastikan saat halaman dimuat, form selalu kosong tanpa default / autofill
+  useEffect(() => {
+    setForm({
+      namaPerusahaan: '',
+      namaPic: '',
+      email: '',
+      password: '',
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
-      toast.error('Email dan password wajib diisi');
+      toast.error('Email dan kata sandi wajib diisi');
       return;
     }
+
+    if (activeTab === 'daftar') {
+      if (!form.namaPerusahaan || !form.namaPic) {
+        toast.error('Nama Perusahaan dan Nama PIC wajib diisi untuk pendaftaran');
+        return;
+      }
+      if (!form.email || !form.password) {
+        toast.error('Email dan kata sandi wajib diisi');
+        return;
+      }
+      
+      // 1. Register into Auth system without auto-login (user must log in first)
+      register(form, false);
+
+      // 2. Register into Damaco commercial customers database (synced to Admin Kelola Customer)
+      handleRegisterCustomer(form);
+
+      // 3. Clear cart for new account
+      if (typeof clearCart === 'function') {
+        clearCart();
+      }
+
+      toast.success(
+        `Akun B2B ${form.namaPerusahaan} berhasil didaftarkan! Silakan masukkan email dan kata sandi Anda untuk masuk. 🔐`,
+        {
+          duration: 800,
+          icon: '✅',
+        }
+      );
+
+      // Switch to login tab dan kosongkan seluruh field
+      setActiveTab('login');
+      setForm({
+        namaPerusahaan: '',
+        namaPic: '',
+        email: '',
+        password: '',
+      });
+      return;
+    }
+
     const result = await login(form);
     if (!result.success) {
       toast.error(result.message);
     } else {
-      toast.success('Selamat datang! 🎉');
-      navigate('/dashboard', { replace: true });
+      const welcomeName = result.user?.nama || result.role || 'User';
+      if (result.role === 'customer') {
+        toast.success(`Selamat datang, ${welcomeName}! (Customer Portal)`);
+        navigate('/katalog', { replace: true });
+      } else {
+        toast.success(`Selamat datang, ${welcomeName}! (Admin Portal)`);
+        navigate('/dashboard', { replace: true });
+      }
     }
   };
 
-  return (
-    <div className="login-page">
-      <div className="login-bg-orb login-bg-orb-1" />
-      <div className="login-bg-orb login-bg-orb-2" />
+  const handleUseAdminDemo = () => {
+    setForm((prev) => ({
+      ...prev,
+      email: 'admin@penjualan.com',
+      password: 'password',
+    }));
+    loginAsAdmin();
+    toast.success('Masuk sebagai Admin Portal 🚀');
+    navigate('/dashboard', { replace: true });
+  };
 
-      <div className="login-card">
-        <div className="login-logo">
-          <div className="login-logo-icon">🛍️</div>
-          <div>
-            <h1>SistemJual</h1>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-              Sistem Penjualan Modern
-            </p>
-          </div>
+  const handleUseCustomerDemo = () => {
+    setForm((prev) => ({
+      ...prev,
+      email: 'customer@damaco.com',
+      password: 'password',
+    }));
+    loginAsCustomer();
+    toast.success('Masuk sebagai Raka Pradipta (PT Nusantara Geospasial) 🏢');
+    navigate('/katalog', { replace: true });
+  };
+
+  const copyToClipboard = (text, key) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    toast.success(`Disalin: ${text}`);
+    setTimeout(() => setCopiedKey(null), 1800);
+  };
+
+  return (
+    <div className="damaco-login-container">
+      <div className="damaco-login-card">
+        {/* Back Link to Catalog */}
+        <div style={{ marginBottom: 12 }}>
+          <button
+            type="button"
+            className="login-back-katalog-btn"
+            onClick={() => navigate('/katalog')}
+          >
+            ← Kembali ke Katalog
+          </button>
         </div>
 
-        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 6 }}>Masuk ke Akun</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28 }}>
-          Masukkan email dan password untuk melanjutkan
+        {/* Logo */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <DamacoLogo size="large" />
+        </div>
+
+        <h2 className="login-heading font-serif">
+          {activeTab === 'login' ? 'Selamat Datang di Damaco' : 'Daftar Akun Perusahaan'}
+        </h2>
+        <p className="login-subtext">
+          {activeTab === 'login'
+            ? 'Sistem Operasional Penjualan & Portal Pengadaan B2B'
+            : 'Registrasi kemitraan korporat & akses katalog enterprise'}
         </p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Email</label>
+        {/* Tab Switcher: Masuk / Daftar */}
+        <div className="login-tab-switcher">
+          <button
+            type="button"
+            className={`login-tab-btn ${activeTab === 'login' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('login');
+              // Kosongkan seluruh form saat berpindah ke tab Masuk
+              setForm({
+                namaPerusahaan: '',
+                namaPic: '',
+                email: '',
+                password: '',
+              });
+            }}
+          >
+            Masuk
+          </button>
+          <button
+            type="button"
+            className={`login-tab-btn ${activeTab === 'daftar' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('daftar');
+              // Kosongkan form pendaftaran — jangan pre-fill dengan data dummy
+              setForm({
+                namaPerusahaan: '',
+                namaPic: '',
+                email: '',
+                password: '',
+              });
+            }}
+          >
+            Daftar Akun Baru
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ marginTop: 20 }} autoComplete="off">
+          {/* Hidden inputs to prevent aggressive browser autofill */}
+          <input type="text" name="fake_damaco_username" style={{ display: 'none' }} tabIndex="-1" autoComplete="off" />
+          <input type="password" name="fake_damaco_password" style={{ display: 'none' }} tabIndex="-1" autoComplete="new-password" />
+
+          {activeTab === 'daftar' && (
+            <>
+              <div className="form-section">
+                <label className="damaco-label">
+                  <FiBriefcase style={{ marginRight: 6 }} /> Nama Perusahaan
+                </label>
+                <input
+                  type="text"
+                  name="damaco_company_name"
+                  className="damaco-input"
+                  placeholder="PT Maju Bersama Teknologi"
+                  value={form.namaPerusahaan}
+                  onChange={(e) => setForm({ ...form, namaPerusahaan: e.target.value })}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+
+              <div className="form-section">
+                <label className="damaco-label">
+                  <FiUserCheck style={{ marginRight: 6 }} /> Nama PIC Pengadaan
+                </label>
+                <input
+                  type="text"
+                  name="damaco_pic_name"
+                  className="damaco-input"
+                  placeholder="Nama Lengkap Penanggung Jawab"
+                  value={form.namaPic}
+                  onChange={(e) => setForm({ ...form, namaPic: e.target.value })}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          <div className="form-section">
+            <label className="damaco-label">
+              <FiMail style={{ marginRight: 6 }} /> Email Kerja
+            </label>
             <input
               id="login-email"
+              name="damaco_user_email"
               type="email"
-              className="form-control"
-              placeholder="admin@penjualan.com"
+              className="damaco-input"
+              placeholder="nama@perusahaan.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              autoComplete="off"
+              required
             />
           </div>
 
-          <div className="form-group" style={{ position: 'relative' }}>
-            <label className="form-label">Password</label>
+          <div className="form-section" style={{ position: 'relative' }}>
+            <label className="damaco-label">
+              <FiLock style={{ marginRight: 6 }} /> Kata Sandi
+            </label>
             <input
               id="login-password"
+              name="damaco_user_password"
               type={showPass ? 'text' : 'password'}
-              className="form-control"
+              className="damaco-input"
               placeholder="••••••••"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
+              autoComplete="new-password"
               style={{ paddingRight: 44 }}
+              required
             />
             <button
               type="button"
               onClick={() => setShowPass(!showPass)}
               style={{
-                position: 'absolute', right: 12, top: 34,
-                background: 'none', color: 'var(--text-muted)',
-                fontSize: 18, padding: 0,
+                position: 'absolute',
+                right: 12,
+                top: 32,
+                background: 'none',
+                border: 'none',
+                color: '#64748B',
+                fontSize: 16,
+                cursor: 'pointer',
               }}
+              title={showPass ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
             >
               {showPass ? <FiEyeOff /> : <FiEye />}
             </button>
@@ -86,29 +292,53 @@ const LoginPage = () => {
           <button
             id="btn-login"
             type="submit"
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%', marginTop: 8, justifyContent: 'center' }}
+            className="damaco-action-btn"
+            style={{ width: '100%', padding: '13px', justifyContent: 'center', marginTop: 14 }}
             disabled={loading}
           >
-            {loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="loading-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
-                Memproses...
-              </span>
-            ) : (
-              'Masuk'
-            )}
+            {loading
+              ? 'Memproses...'
+              : activeTab === 'login'
+              ? 'Masuk ke Sistem Damaco →'
+              : 'Daftarkan Akun & Lanjut ke Katalog →'}
           </button>
         </form>
 
-        <div style={{
-          marginTop: 28, padding: 16, background: 'var(--primary-subtle)',
-          borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-          fontSize: 12, color: 'var(--text-muted)',
-        }}>
-          <strong style={{ color: 'var(--text-secondary)' }}>Demo Login:</strong><br />
-          Admin: admin@penjualan.com / password<br />
-          Kasir: kasir@penjualan.com / password
+        {/* ── Akses Instan Akun Demo ── */}
+        <div className="login-demo-section">
+          <div className="login-demo-divider">
+            <span>atau masuk akun demo pengujian</span>
+          </div>
+
+          <div className="login-demo-row">
+            {/* Tombol Demo Admin */}
+            <button
+              type="button"
+              className="login-demo-btn admin"
+              onClick={handleUseAdminDemo}
+            >
+              <div className="demo-btn-header">
+                <span className="demo-dot admin-dot" />
+                <span className="demo-role-name">Admin</span>
+              </div>
+              <div className="demo-email-text">admin@penjualan.com</div>
+              <span className="demo-btn-action">Masuk Admin →</span>
+            </button>
+
+            {/* Tombol Demo Customer */}
+            <button
+              type="button"
+              className="login-demo-btn customer"
+              onClick={handleUseCustomerDemo}
+            >
+              <div className="demo-btn-header">
+                <span className="demo-dot customer-dot" />
+                <span className="demo-role-name">Customer B2B</span>
+              </div>
+              <div className="demo-email-text">customer@damaco.com</div>
+              <span className="demo-btn-action">Masuk Customer →</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

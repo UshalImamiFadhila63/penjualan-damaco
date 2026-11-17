@@ -2,8 +2,18 @@ import api from './api';
 
 export const authService = {
   login: (credentials) => api.post('/auth/login', credentials),
+  register: (data) => api.post('/auth/register', data),
   getMe: () => api.get('/auth/me'),
   changePassword: (data) => api.put('/auth/change-password', data),
+};
+
+export const damacoService = {
+  getSyncData: () => api.get('/damaco/sync'),
+  saveOrder: (order) => api.post('/damaco/orders', order),
+  getProfile: (email) => api.get('/damaco/profile', { params: { email } }),
+  saveProfile: (data) => api.post('/damaco/profile', data),
+  deleteCustomer: (id, email) => api.delete(`/damaco/customers/${id}`, { params: { email } }),
+  syncAll: () => api.post('/damaco/sync-all'),
 };
 
 export const produkService = {

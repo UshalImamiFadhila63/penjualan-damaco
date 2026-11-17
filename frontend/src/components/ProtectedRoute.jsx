@@ -9,7 +9,9 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    // Customer mencoba masuk ke halaman admin → kembali ke katalog
+    // Admin mencoba masuk ke halaman customer → masuk ke dashboard
+    return <Navigate to={user.role === 'admin' ? '/dashboard' : '/'} replace />;
   }
 
   return children;

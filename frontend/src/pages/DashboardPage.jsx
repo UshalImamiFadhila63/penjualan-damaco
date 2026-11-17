@@ -1,170 +1,410 @@
-import { useEffect, useState } from 'react';
-import { penjualanService } from '../services';
-import { formatRupiah, formatTanggal } from '../utils/helpers';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, BarChart, Bar,
-} from 'recharts';
-import {
-  FiShoppingBag, FiDollarSign, FiPackage, FiUsers,
-  FiAlertTriangle, FiTrendingUp,
+  FiBell,
+  FiCalendar,
+  FiTruck,
+  FiBarChart2,
+  FiPlus,
+  FiRotateCcw,
 } from 'react-icons/fi';
-
-const StatCard = ({ icon, label, value, sub, color }) => (
-  <div className="stat-card">
-    <div className="stat-card-icon" style={{ background: `${color}20`, color }}>
-      {icon}
-    </div>
-    <div className="stat-card-label">{label}</div>
-    <div className="stat-card-value">{value}</div>
-    {sub && <div className="stat-card-sub">{sub}</div>}
-  </div>
-);
+import { useDamaco } from '../context/DamacoContext';
+import { useAuth } from '../context/AuthContext';
 
 const DashboardPage = () => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    metrics,
+    handleTerbitkanPenawaran,
+    handleUrusDealer,
+    handleTandaiLunas,
+    handleKirimBarang,
+    handleTutupTransaksi,
+    setModalActionOrder,
+    setActiveActionModalType,
+    setIsCreateOrderModalOpen,
+    handleResetData,
+    orders,
+    customers,
+  } = useDamaco();
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await penjualanService.getDashboard();
-        setData(res.data.data);
-      } catch (err) {
-        console.error('Gagal load dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
-  }, []);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="loading-overlay">
-        <div className="loading-spinner" />
-      </div>
-    );
-  }
+  // Navigate directly to order detail view in Semua Pesanan
+  const handleOpenOrderDetail = (order) => {
+    navigate(`/pesanan?id=${order.id}`);
+  };
 
-  const grafikData = data?.grafik_penjualan?.map(g => ({
-    tanggal: formatTanggal(g.tanggal, { day: '2-digit', month: 'short' }),
-    pendapatan: parseFloat(g.total_pendapatan),
-    transaksi: parseInt(g.total_transaksi),
-  })) || [];
+  // First name greeting
+  const firstName = user?.nama ? user.nama.split(' ')[0] : 'Admin';
+
+  const {
+    terbitkanPenawaranList,
+    inputPoList,
+    urusDealerList,
+    buatInvoiceList,
+    tandaiLunasList,
+    kirimBarangList,
+    tutupTransaksiList,
+  } = metrics.groups;
+
+  // Open workflow dialog for PO, Dealer, Invoice
+  const triggerWorkflowDialog = (order, type) => {
+    if (order.isFrozen || order.actionGroup === 'dibekukan') {
+      toast.error('Pesanan ini dibekukan karena akun customer telah dihapus. Transaksi tidak dapat dilanjutkan.', {
+        icon: '🔒',
+        duration: 800,
+      });
+      return;
+    }
+    setModalActionOrder(order);
+    setActiveActionModalType(type);
+  };
 
   return (
-    <div>
-      {/* Stat Cards */}
-      <div className="stats-grid">
-        <StatCard
-          icon={<FiDollarSign />}
-          label="Pendapatan Hari Ini"
-          value={formatRupiah(data?.hari_ini?.total_pendapatan || 0)}
-          sub={`${data?.hari_ini?.total_transaksi || 0} transaksi`}
-          color="var(--primary)"
-        />
-        <StatCard
-          icon={<FiTrendingUp />}
-          label="Pendapatan Bulan Ini"
-          value={formatRupiah(data?.bulan_ini?.total_pendapatan || 0)}
-          sub={`${data?.bulan_ini?.total_transaksi || 0} transaksi`}
-          color="var(--secondary)"
-        />
-        <StatCard
-          icon={<FiPackage />}
-          label="Total Produk"
-          value={data?.total_produk || 0}
-          sub="produk aktif"
-          color="var(--success)"
-        />
-        <StatCard
-          icon={<FiUsers />}
-          label="Total Pelanggan"
-          value={data?.total_pelanggan || 0}
-          sub="pelanggan terdaftar"
-          color="var(--warning)"
-        />
+    <div className="damaco-dashboard-wrapper">
+      {/* Date Header */}
+      <div className="damaco-date-badge">
+        {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
       </div>
 
-      {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">📈 Grafik Pendapatan 7 Hari</span>
+      {/* Hero Greeting */}
+      <h1 className="damaco-hero-greeting font-serif">Selamat pagi, {firstName}.</h1>
+      <p className="damaco-hero-subtitle">
+        {metrics.butuhTindakanCount} pesanan menunggu langkah dari Anda hari ini.
+      </p>
+
+      {/* 4 Stat Metric Cards */}
+      <div className="damaco-stats-grid">
+        {/* Card 1: Butuh tindakan */}
+        <div className="damaco-stat-card card-action-alert">
+          <div className="stat-card-header">
+            <span className="stat-label">Butuh tindakan</span>
+            <FiBell className="stat-icon-top" style={{ color: '#286845' }} />
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={grafikData}>
-              <defs>
-                <linearGradient id="colorPendapatan" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => [formatRupiah(v), 'Pendapatan']} />
-              <Area
-                type="monotone" dataKey="pendapatan"
-                stroke="var(--primary)" fill="url(#colorPendapatan)" strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="stat-value-huge alert-red">{metrics.butuhTindakanCount}</div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">🏆 Produk Terlaris Bulan Ini</span>
+        {/* Card 2: Menunggu pembayaran */}
+        <div className="damaco-stat-card">
+          <div className="stat-card-header">
+            <span className="stat-label">Menunggu pembayaran</span>
+            <FiCalendar className="stat-icon-top" />
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data?.produk_terlaris || []} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis dataKey="nama" type="category" tick={{ fontSize: 11 }} width={100} />
-              <Tooltip formatter={(v) => [`${v} pcs`, 'Terjual']} />
-              <Bar dataKey="total_terjual" fill="var(--secondary)" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="stat-value-huge">{metrics.menungguBayarCount}</div>
+          <div className="stat-subtext">Rp {metrics.menungguBayarTotal.toLocaleString('id-ID')}</div>
+        </div>
+
+        {/* Card 3: Dalam pengiriman */}
+        <div className="damaco-stat-card">
+          <div className="stat-card-header">
+            <span className="stat-label">Dalam pengiriman</span>
+            <FiTruck className="stat-icon-top" />
+          </div>
+          <div className="stat-value-huge">{metrics.pengirimanCount}</div>
+        </div>
+
+        {/* Card 4: Nilai pipeline aktif */}
+        <div className="damaco-stat-card">
+          <div className="stat-card-header">
+            <span className="stat-label">Nilai pipeline aktif</span>
+            <FiBarChart2 className="stat-icon-top" />
+          </div>
+          <div className="stat-value-currency font-serif">
+            Rp {metrics.pipelineTotal.toLocaleString('id-ID')}
+          </div>
         </div>
       </div>
 
-      {/* Stok Menipis */}
-      {data?.stok_menipis?.length > 0 && (
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <FiAlertTriangle style={{ color: 'var(--warning)' }} />
-              Peringatan Stok Menipis
-            </span>
+      {/* Section: Butuh tindakan Anda */}
+      <h2 className="damaco-section-title font-serif">Butuh tindakan Anda</h2>
+
+      {/* 1. Group: Terbitkan penawaran */}
+      {terbitkanPenawaranList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Terbitkan penawaran</span>
+            <span className="group-badge-count">{terbitkanPenawaranList.length}</span>
           </div>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Produk</th>
-                  <th>Stok Tersisa</th>
-                  <th>Stok Minimum</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.stok_menipis.map(item => (
-                  <tr key={item.id}>
-                    <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.nama}</td>
-                    <td className={item.stok === 0 ? 'stock-low' : 'stock-warning'}>
-                      {item.stok}
-                    </td>
-                    <td>{item.stok_minimum}</td>
-                    <td>
-                      <span className={`badge ${item.stok === 0 ? 'badge-danger' : 'badge-warning'}`}>
-                        {item.stok === 0 ? 'Habis' : 'Menipis'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="group-rows-list">
+            {terbitkanPenawaranList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => triggerWorkflowDialog(order, 'terbitkan_penawaran')}
+                  >
+                    Terbitkan penawaran →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Group: Menunggu PO Customer */}
+      {inputPoList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Menunggu PO Customer</span>
+            <span className="group-badge-count">{inputPoList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {inputPoList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#D97706',
+                      background: '#FEF3C7',
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    title="Menunggu customer mengirimkan nomor PO resmi via portal"
+                  >
+                    ⏳ Menunggu PO
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Group: Urus dealer */}
+      {urusDealerList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Urus dealer</span>
+            <span className="group-badge-count">{urusDealerList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {urusDealerList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => handleUrusDealer(order.id)}
+                  >
+                    Urus dealer →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Group: Buat invoice */}
+      {buatInvoiceList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Buat invoice</span>
+            <span className="group-badge-count">{buatInvoiceList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {buatInvoiceList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => triggerWorkflowDialog(order, 'buat_invoice')}
+                  >
+                    Buat invoice →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Group: Tandai Lunas */}
+      {tandaiLunasList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Tandai Lunas</span>
+            <span className="group-badge-count">{tandaiLunasList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {tandaiLunasList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => handleTandaiLunas(order.id)}
+                  >
+                    Tandai Lunas →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Group: Kirim barang */}
+      {kirimBarangList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Kirim barang</span>
+            <span className="group-badge-count">{kirimBarangList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {kirimBarangList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => handleKirimBarang(order.id)}
+                  >
+                    Kirim barang →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 7. Group: Tutup transaksi */}
+      {tutupTransaksiList.length > 0 && (
+        <div className="damaco-action-group-card">
+          <div className="group-card-header">
+            <span className="group-title">Tutup transaksi</span>
+            <span className="group-badge-count">{tutupTransaksiList.length}</span>
+          </div>
+          <div className="group-rows-list">
+            {tutupTransaksiList.map((order) => (
+              <div key={order.id} className="action-row" onClick={() => handleOpenOrderDetail(order)} style={{ cursor: 'pointer' }}>
+                <div
+                  className="order-code-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  {order.nomor}
+                </div>
+                <div
+                  className="order-customer-col"
+                  title="Klik untuk melihat detail rincian pesanan"
+                >
+                  <div className="customer-name">{order.customerNama}</div>
+                  <div className="customer-items-sub">{order.detail}</div>
+                </div>
+                <div className="order-price-col">
+                  Rp {order.total.toLocaleString('id-ID')}
+                </div>
+                <div className="order-btn-col" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="damaco-action-btn"
+                    onClick={() => handleTutupTransaksi(order.id)}
+                  >
+                    Tutup transaksi →
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

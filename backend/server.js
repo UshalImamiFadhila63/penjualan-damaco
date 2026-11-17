@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const produkRoutes = require('./routes/produkRoutes');
 const penjualanRoutes = require('./routes/penjualanRoutes');
 const masterRoutes = require('./routes/masterRoutes');
+const damacoRoutes = require('./routes/damacoRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -36,6 +37,7 @@ app.use('/uploads', express.static('uploads'));
 
 // ── Routes ────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
+app.use('/api/damaco', damacoRoutes);
 app.use('/api/produk', produkRoutes);
 app.use('/api/penjualan', penjualanRoutes);
 app.use('/api/master', masterRoutes);
